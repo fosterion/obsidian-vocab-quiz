@@ -37,16 +37,13 @@ const BASE_SETTINGS = {
 
 /** @param notes — map of note path to its frontmatter (null means no frontmatter) */
 function makeApp(notes) {
-  const files = Object.entries(notes).map(([p, fm]) => ({
-    path: p,
-    basename: p.split('/').pop().replace(/\.md$/, ''),
-    fm,
-  }));
+  const files = Object.entries(notes).map(([p, fm]) => Object.assign(new stub.TFile(p), { fm }));
   const app = {
     metadataCache: { getFileCache: (f) => (f.fm ? { frontmatter: f.fm } : {}) },
     vault: {
       getMarkdownFiles: () => files,
-      getAbstractFileByPath: (p) => files.find((f) => f.path === p) || null,
+      getAbstractFileByPath: (p) =>
+        files.find((f) => f.path === p) || (p.endsWith('.md') ? null : new stub.TFolder(p)),
     },
     fileManager: {
       processFrontMatter: async (file, fn) => {

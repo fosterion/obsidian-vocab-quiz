@@ -20,7 +20,15 @@ function build() {
   const out = [
     "'use strict';",
     '',
-    "const { Plugin, PluginSettingTab, Setting, Modal, Notice } = require('obsidian');",
+    'const {',
+    '  Plugin,',
+    '  PluginSettingTab,',
+    '  Setting,',
+    '  Modal,',
+    '  Notice,',
+    '  TFile,',
+    '  normalizePath,',
+    "} = require('obsidian');",
     '',
   ];
 
@@ -28,7 +36,7 @@ function build() {
     let body = fs.readFileSync(path.join(ROOT, file), 'utf8');
     body = body.replace("'use strict';\n", '');
     // drop require lines and exports — the bundle is a single scope
-    body = body.replace(/^const \{[^}]*\} = require\('obsidian'\);\n/gm, '');
+    body = body.replace(/^const \{[^}]*?\} = require\('obsidian'\);\n/gms, '');
     body = body.replace(/^const \{ schedule \} = require\('\.\/fsrs'\);\n/gm, '');
     body = body.replace(/^const deck = require\('\.\/deck'\);\n/gm, '');
     body = body.replace(/^module\.exports = \{[^}]*\};\n/gm, '');

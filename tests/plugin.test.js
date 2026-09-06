@@ -70,6 +70,36 @@ test('grading one direction does not overwrite the other', async () => {
   assert.equal(fm.sr_fwd_lapses, 0);
 });
 
+test('stray slashes and blanks are stripped from stored folders', async () => {
+  const { plugin } = await makePlugin(word(), { folders: ['/vocab/', ' other ', '', '//deep//nested//'] });
+  assert.deepEqual(plugin.settings.folders, ['vocab', 'other', 'deep/nested']);
+});
+
+test('a folder typed with a leading slash still collects notes', async () => {
+  const { plugin, app } = await makePlugin({ 'vocab/a.md': { word: 'gato', translation: 'Katze' } }, { folders: ['/vocab'] });
+  assert.equal(deck.collect(app, plugin.settings).length, 1);
+});
+
+test('editing the folders setting normalises what was typed', async () => {
+  const { plugin } = await makePlugin(word());
+  plugin.settingTabs[0].display();
+  await Setting.byName('Folders').components[0].set('/words/, //phrases// , ');
+  assert.deepEqual(plugin.settings.folders, ['words', 'phrases']);
+});
+
+test('settings sections use the Obsidian heading helper', async () => {
+  const { plugin } = await makePlugin(word());
+  plugin.settingTabs[0].display();
+  const headings = Setting.created.filter((s) => s.heading).map((s) => s.name);
+  assert.deepEqual(headings, ['Card source', 'Mode', 'Scheduling']);
+});
+
+test('saveState ignores a path that is a folder, not a note', async () => {
+  const { plugin, app } = await makePlugin(word());
+  await plugin.saveState('vocab', DIR_FORWARD, grade());
+  assert.deepEqual(app.writes, []);
+});
+
 test('saveState is a no-op for a path that is not in the vault', async () => {
   const { plugin, app } = await makePlugin(word());
   await plugin.saveState('vocab/missing.md', DIR_FORWARD, grade());

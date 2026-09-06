@@ -34,6 +34,29 @@ test('every source module ends up in the bundle', () => {
   }
 });
 
+test('the repository carries every file the plugin directory requires', () => {
+  for (const file of ['README.md', 'LICENSE', 'manifest.json', 'main.js', 'styles.css']) {
+    assert.ok(fs.existsSync(path.join(ROOT, file)), `${file} is required for submission`);
+  }
+});
+
+test('styles lean on theme variables instead of fixed colours', () => {
+  const css = fs.readFileSync(path.join(ROOT, 'styles.css'), 'utf8');
+  assert.deepEqual(
+    css.match(/#[0-9a-fA-F]{3,8}\b|\brgba?\(/g) || [],
+    [],
+    'hardcoded colours break user themes and fail review'
+  );
+});
+
+test('the bundle avoids the APIs the guidelines forbid', () => {
+  const bundle = fs.readFileSync(BUNDLE, 'utf8');
+  for (const banned of ['innerHTML', 'outerHTML', 'insertAdjacentHTML', 'window.app']) {
+    assert.ok(!bundle.includes(banned), `${banned} is not allowed in community plugins`);
+  }
+  assert.ok(!/\(\?<[=!]/.test(bundle), 'lookbehind regex is unsupported on mobile');
+});
+
 test('the manifest points at a bundle that exists and parses', () => {
   const manifest = JSON.parse(fs.readFileSync(path.join(ROOT, 'manifest.json'), 'utf8'));
   assert.equal(manifest.id, 'vocab-quiz');

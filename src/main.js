@@ -1,6 +1,14 @@
 'use strict';
 
-const { Plugin, PluginSettingTab, Setting, Modal, Notice } = require('obsidian');
+const {
+  Plugin,
+  PluginSettingTab,
+  Setting,
+  Modal,
+  Notice,
+  TFile,
+  normalizePath,
+} = require('obsidian');
 const { schedule } = require('./fsrs');
 const deck = require('./deck');
 
@@ -42,10 +50,20 @@ function directionLabel(settings, direction) {
     : `${translation} → ${term}`;
 }
 
+/** Vault-relative folder paths, free of stray slashes and blank entries. */
+function cleanFolders(folders) {
+  return folders
+    .map((f) => String(f).trim())
+    .filter(Boolean)
+    .map((f) => normalizePath(f))
+    .filter((f) => f !== '/');
+}
+
 /** Brings stored settings in line with the current schema. */
 function normalizeSettings(loaded) {
   if (!loaded) return {};
   const out = Object.assign({}, loaded);
+  if (Array.isArray(out.folders)) out.folders = cleanFolders(out.folders);
   if (Array.isArray(out.directions)) {
     const known = out.directions.filter(
       (d) => d === deck.DIR_FORWARD || d === deck.DIR_REVERSE
@@ -134,7 +152,7 @@ class VocabQuizPlugin extends Plugin {
   /** Writes FSRS state for one direction into the note's frontmatter. */
   async saveState(path, direction, state) {
     const file = this.app.vault.getAbstractFileByPath(path);
-    if (!file) return;
+    if (!(file instanceof TFile)) return;
     const p = deck.statePrefix(this.settings, direction);
     await this.app.fileManager.processFrontMatter(file, (fm) => {
       fm[p + 'due'] = toDateString(state.due);
@@ -364,7 +382,7 @@ class VocabQuizSettingTab extends PluginSettingTab {
     const { containerEl } = this;
     containerEl.empty();
 
-    containerEl.createEl('h3', { text: 'Card source' });
+    new Setting(containerEl).setName('Card source').setHeading();
 
     new Setting(containerEl)
       .setName('Folders')
@@ -374,10 +392,7 @@ class VocabQuizSettingTab extends PluginSettingTab {
           .setPlaceholder('vocabulary')
           .setValue(this.plugin.settings.folders.join(', '))
           .onChange(async (v) => {
-            this.plugin.settings.folders = v
-              .split(',')
-              .map((s) => s.trim())
-              .filter(Boolean);
+            this.plugin.settings.folders = cleanFolders(v.split(','));
             await this.plugin.saveSettings();
           })
       );
@@ -430,7 +445,7 @@ class VocabQuizSettingTab extends PluginSettingTab {
           })
       );
 
-    containerEl.createEl('h3', { text: 'Mode' });
+    new Setting(containerEl).setName('Mode').setHeading();
 
     new Setting(containerEl)
       .setName('Default mode')
@@ -513,7 +528,7 @@ class VocabQuizSettingTab extends PluginSettingTab {
           })
       );
 
-    containerEl.createEl('h3', { text: 'Scheduling' });
+    new Setting(containerEl).setName('Scheduling').setHeading();
 
     new Setting(containerEl)
       .setName('New cards per day')

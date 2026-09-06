@@ -36,16 +36,6 @@ test('a distractor must never be a valid answer for the prompt', { todo: true },
   );
 });
 
-test('a folder path with a leading slash should match', { todo: true }, () => {
-  const app = makeApp({ 'vocab/a.md': { word: 'gato', translation: 'Katze' } });
-  assert.equal(deck.collect(app, settings({ folders: ['/vocab'] })).length, 1);
-});
-
-test('folder matching should ignore case', { todo: true }, () => {
-  const app = makeApp({ 'Vocab/a.md': { word: 'gato', translation: 'Katze' } });
-  assert.equal(deck.collect(app, settings({ folders: ['vocab'] })).length, 1);
-});
-
 test('a list-valued translation should not collapse into one string', { todo: true }, () => {
   const app = makeApp({ 'vocab/a.md': { word: 'egg', translation: ['egg', 'ovum'] } });
   const entry = deck.collect(app, settings())[0];

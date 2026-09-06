@@ -4,6 +4,28 @@
 
 const { FakeEl } = require('./dom');
 
+class TFile {
+  constructor(path) {
+    this.path = path;
+    this.basename = path.split('/').pop().replace(/\.md$/, '');
+    this.extension = 'md';
+  }
+}
+
+class TFolder {
+  constructor(path) { this.path = path; }
+}
+
+/** Mirrors Obsidian's normalizePath: vault-relative, no stray or duplicate slashes. */
+function normalizePath(path) {
+  const cleaned = String(path)
+    .replace(/\\/g, '/')
+    .replace(/\/+/g, '/')
+    .replace(/^\/+|\/+$/g, '')
+    .normalize('NFC');
+  return cleaned === '' ? '/' : cleaned;
+}
+
 class Plugin {
   constructor(app) {
     this.app = app;
@@ -115,4 +137,14 @@ class Setting {
 }
 Setting.created = [];
 
-module.exports = { Plugin, PluginSettingTab, Setting, Modal, Notice, FakeEl };
+module.exports = {
+  Plugin,
+  PluginSettingTab,
+  Setting,
+  Modal,
+  Notice,
+  TFile,
+  TFolder,
+  normalizePath,
+  FakeEl,
+};

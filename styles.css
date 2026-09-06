@@ -70,14 +70,14 @@
 }
 
 .vq-choice.vq-right {
-  background: rgba(76, 175, 80, 0.18);
-  border-color: #4caf50;
+  background: var(--background-modifier-success);
+  border-color: var(--text-success);
   opacity: 1;
 }
 
 .vq-choice.vq-wrong {
-  background: rgba(244, 67, 54, 0.16);
-  border-color: #f44336;
+  background: var(--background-modifier-error);
+  border-color: var(--text-error);
   opacity: 1;
 }
 
@@ -107,10 +107,10 @@
   background: var(--background-modifier-hover);
 }
 
-.vq-grade-1:hover { border-color: #f44336; }
-.vq-grade-2:hover { border-color: #ff9800; }
-.vq-grade-3:hover { border-color: #4caf50; }
-.vq-grade-4:hover { border-color: #2196f3; }
+.vq-grade-1:hover { border-color: var(--color-red); }
+.vq-grade-2:hover { border-color: var(--color-orange); }
+.vq-grade-3:hover { border-color: var(--color-green); }
+.vq-grade-4:hover { border-color: var(--color-blue); }
 
 .vq-hint {
   margin-top: 1em;
