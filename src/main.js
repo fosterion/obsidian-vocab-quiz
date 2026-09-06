@@ -12,7 +12,7 @@ const DEFAULTS = {
   termLabel: '',
   translationLabel: '',
   fieldPrefix: 'sr_',
-  statusFilter: ['new', 'learning'],
+  statusFilter: ['new', 'learning', 'known'],
   directions: [deck.DIR_FORWARD, deck.DIR_REVERSE],
   mode: 'choice',
   choiceCount: 4,
@@ -154,8 +154,9 @@ class VocabQuizPlugin extends Plugin {
               (Number(fm[deck.statePrefix(this.settings, d) + 'interval']) ||
                 0) >= 21
           );
-        if (mature && fm.status !== 'known') fm.status = 'known';
-        else if (state.reps > 0 && fm.status === 'new') fm.status = 'learning';
+        const status = deck.statusOf(fm);
+        if (mature && status !== 'known') fm.status = 'known';
+        else if (state.reps > 0 && status === 'new') fm.status = 'learning';
       }
     });
   }
@@ -293,7 +294,11 @@ class ReviewModal extends Modal {
       });
       if (wasCorrect === true && g === 3) btn.addClass('mod-cta');
       if (wasCorrect === false && g === 1) btn.addClass('mod-cta');
-      btn.onclick = () => this.grade(card, g);
+      btn.onclick = () => {
+        // grade() is async, so lock the row before a second click can land
+        for (const el of Array.from(box.children)) el.setAttribute('disabled', 'true');
+        return this.grade(card, g);
+      };
     });
 
     const note = contentEl.createDiv({ cls: 'vq-hint' });
@@ -409,7 +414,9 @@ class VocabQuizSettingTab extends PluginSettingTab {
 
     new Setting(containerEl)
       .setName('Statuses to review')
-      .setDesc('Comma-separated. Empty means every note.')
+      .setDesc(
+        'Comma-separated; empty means every note. A status left out here is never asked again, even when it comes due.'
+      )
       .addText((t) =>
         t
           .setPlaceholder('new, learning')

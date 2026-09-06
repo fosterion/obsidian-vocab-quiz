@@ -85,6 +85,23 @@ test('autoPromote marks a word known only once every direction has matured', asy
   assert.equal(app.notes['vocab/a.md'].status, 'known');
 });
 
+test('the default status filter does not fight autoPromote', async () => {
+  const { plugin } = await makePlugin(word());
+  plugin.data = null;
+  await plugin.onload();
+  assert.ok(
+    plugin.settings.statusFilter.includes('known'),
+    'promoting to known must not drop the word out of the default filter'
+  );
+});
+
+test('autoPromote labels a note that had no status at all', async () => {
+  const notes = { 'vocab/a.md': { word: 'gato', translation: 'Katze' } };
+  const { plugin, app } = await makePlugin(notes);
+  await plugin.saveState('vocab/a.md', DIR_FORWARD, grade({ interval: 3, reps: 1 }));
+  assert.equal(app.notes['vocab/a.md'].status, 'learning');
+});
+
 test('autoPromote moves a new word to learning after the first answer', async () => {
   const notes = { 'vocab/a.md': { word: 'gato', translation: 'Katze', status: 'new' } };
   const { plugin, app } = await makePlugin(notes);

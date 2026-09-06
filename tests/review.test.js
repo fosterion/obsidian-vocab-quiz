@@ -116,6 +116,28 @@ test('"Again" puts the card back into the same session', async () => {
   assert.equal(el().first('vq-prompt').textContent, 'gato', 'the card comes back');
 });
 
+test('a second grade click cannot skip the next card', async () => {
+  const notes = {
+    'vocab/a.md': { word: 'gato', translation: 'Katze' },
+    'vocab/b.md': { word: 'perro', translation: 'Hund' },
+  };
+  const { el, modal, app } = await review(notes, { mode: 'classic', directions: [DIR_FORWARD], maxPerSession: 2 });
+  el().first('vq-reveal').click();
+
+  const grades = el().all('vq-grade');
+  await Promise.all([grades[2].click(), grades[3].click()]);
+  assert.equal(modal.index, 1, 'the second click must not advance past a card');
+  assert.equal(app.writes.length, 1, 'a card must be written once per answer');
+});
+
+test('grade buttons lock as soon as one is pressed', async () => {
+  const { el } = await review(single(), { mode: 'classic', directions: [DIR_FORWARD] });
+  el().first('vq-reveal').click();
+  const grades = el().all('vq-grade');
+  await grades[2].click();
+  assert.ok(grades.every((b) => b.disabled), 'the whole row must lock');
+});
+
 test('the session ends with a summary and a working close button', async () => {
   const { el, modal } = await review(single(), { mode: 'classic', directions: [DIR_FORWARD] });
   el().first('vq-reveal').click();

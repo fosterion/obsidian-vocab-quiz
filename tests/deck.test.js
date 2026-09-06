@@ -62,11 +62,46 @@ test('collect: a folder prefix does not leak into a sibling folder', () => {
 test('collect: statusFilter keeps only the listed statuses', () => {
   const app = makeApp({
     'vocab/new.md': { word: 'a', translation: 'b', status: 'new' },
-    'vocab/known.md': { word: 'c', translation: 'd', status: 'known' },
-    'vocab/blank.md': { word: 'e', translation: 'f' },
+    'vocab/learning.md': { word: 'c', translation: 'd', status: 'learning' },
+    'vocab/known.md': { word: 'e', translation: 'f', status: 'known' },
   });
   const paths = deck.collect(app, settings({ statusFilter: ['new', 'learning'] })).map((e) => e.path);
-  assert.deepEqual(paths, ['vocab/new.md']);
+  assert.deepEqual(paths, ['vocab/new.md', 'vocab/learning.md']);
+});
+
+test('collect: a note with no status counts as new', () => {
+  const app = makeApp({
+    'vocab/blank.md': { word: 'a', translation: 'b' },
+    'vocab/marked.md': { word: 'c', translation: 'd', status: 'learning' },
+  });
+  const collected = deck.collect(app, settings({ statusFilter: ['new', 'learning'] }));
+  assert.deepEqual(collected.map((e) => e.path).sort(), ['vocab/blank.md', 'vocab/marked.md']);
+  assert.equal(collected.find((e) => e.path === 'vocab/blank.md').status, 'new');
+});
+
+test('collect: a status outside the filter is excluded on purpose', () => {
+  const app = makeApp({
+    'vocab/suspended.md': { word: 'a', translation: 'b', status: 'suspended' },
+    'vocab/new.md': { word: 'c', translation: 'd', status: 'new' },
+  });
+  const collected = deck.collect(app, settings({ statusFilter: ['new', 'learning', 'known'] }));
+  assert.deepEqual(collected.map((e) => e.path), ['vocab/new.md']);
+});
+
+test('collect: the default filter keeps a promoted word in rotation', () => {
+  const app = makeApp({
+    'vocab/known.md': {
+      word: 'a', translation: 'b', status: 'known',
+      sr_fwd_due: '2020-01-01', sr_fwd_stability: 30, sr_fwd_interval: 30,
+    },
+  });
+  assert.equal(deck.collect(app, settings()).length, 1, 'autoPromote must not delete a word from review');
+});
+
+test('statusOf normalises a missing or blank status', () => {
+  assert.equal(deck.statusOf({}), 'new');
+  assert.equal(deck.statusOf({ status: '  ' }), 'new');
+  assert.equal(deck.statusOf({ status: ' learning ' }), 'learning');
 });
 
 test('collect: an empty statusFilter keeps every note', () => {

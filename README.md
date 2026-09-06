@@ -51,7 +51,8 @@ notes in any language work without renaming anything.
 - Both directions, independently toggleable
 - FSRS scheduler with independent state per direction, stored in the
   `sr_fwd_*` and `sr_rev_*` properties
-- Filter by `status` — for example, review only `new` and `learning`
+- Filter by `status`; a status left out of the filter is never asked again,
+  even when it comes due. Notes with no `status` count as `new`
 - Automatic `new → learning → known` promotion as the interval grows
 - Configurable property names and side labels
 

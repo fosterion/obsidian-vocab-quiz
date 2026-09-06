@@ -21,8 +21,7 @@ function noteToEntry(app, file, settings) {
   if (!term || !translation) return null;
 
   if (settings.statusFilter && settings.statusFilter.length) {
-    const status = String(fm.status || '').trim();
-    if (!settings.statusFilter.includes(status)) return null;
+    if (!settings.statusFilter.includes(statusOf(fm))) return null;
   }
 
   return {
@@ -30,7 +29,7 @@ function noteToEntry(app, file, settings) {
     term,
     translation,
     transcription: String(fm[settings.transcriptionField] || '').trim(),
-    status: String(fm.status || '').trim(),
+    status: statusOf(fm),
     level: String(fm.level || '').trim(),
     sr: {
       // fall back to the shared fields so existing scheduling data is not lost
@@ -42,6 +41,11 @@ function noteToEntry(app, file, settings) {
         readState(fm, settings.fieldPrefix),
     },
   };
+}
+
+/** An unmarked note counts as new, so a missing status never hides a word. */
+function statusOf(fm) {
+  return String(fm.status || '').trim() || 'new';
 }
 
 /** Frontmatter prefix holding the scheduling state of one direction. */
@@ -156,6 +160,7 @@ function shuffle(arr) {
 
 module.exports = {
   collect,
+  statusOf,
   statePrefix,
   buildQueue,
   buildChoices,

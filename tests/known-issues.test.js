@@ -10,25 +10,10 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 
 const deck = require('../src/deck');
-const { makePlugin, makeApp, stub, BASE_SETTINGS } = require('./helpers/vault');
+const { makePlugin, makeApp, BASE_SETTINGS } = require('./helpers/vault');
 
-const { DIR_FORWARD, DIR_REVERSE } = deck;
+const { DIR_FORWARD } = deck;
 const settings = (over = {}) => Object.assign({}, BASE_SETTINGS, over);
-
-test('two quick grade clicks must not skip a card', { todo: true }, async () => {
-  const notes = {
-    'vocab/a.md': { word: 'gato', translation: 'Katze' },
-    'vocab/b.md': { word: 'perro', translation: 'Hund' },
-  };
-  const { plugin } = await makePlugin(notes, { mode: 'classic', directions: [DIR_FORWARD], maxPerSession: 2 });
-  plugin.startReview();
-  const modal = stub.Modal.last;
-  modal.contentEl.first('vq-reveal').click();
-
-  const grades = modal.contentEl.all('vq-grade');
-  await Promise.all([grades[2].click(), grades[3].click()]);
-  assert.equal(modal.index, 1, 'the second click landed on an already graded card');
-});
 
 test('a distractor must never be a valid answer for the prompt', { todo: true }, () => {
   const entry = (path, term, translation) => ({
@@ -51,12 +36,6 @@ test('a distractor must never be a valid answer for the prompt', { todo: true },
   );
 });
 
-test('a note without a status should still be reviewable by default', { todo: true }, () => {
-  const app = makeApp({ 'vocab/a.md': { word: 'gato', translation: 'Katze' } });
-  const collected = deck.collect(app, settings({ statusFilter: ['new', 'learning'] }));
-  assert.equal(collected.length, 1, 'a missing status silently hides the note');
-});
-
 test('a folder path with a leading slash should match', { todo: true }, () => {
   const app = makeApp({ 'vocab/a.md': { word: 'gato', translation: 'Katze' } });
   assert.equal(deck.collect(app, settings({ folders: ['/vocab'] })).length, 1);
@@ -65,17 +44,6 @@ test('a folder path with a leading slash should match', { todo: true }, () => {
 test('folder matching should ignore case', { todo: true }, () => {
   const app = makeApp({ 'Vocab/a.md': { word: 'gato', translation: 'Katze' } });
   assert.equal(deck.collect(app, settings({ folders: ['vocab'] })).length, 1);
-});
-
-test('a promoted word should keep the schedule FSRS still writes for it', { todo: true }, () => {
-  const app = makeApp({
-    'vocab/a.md': {
-      word: 'gato', translation: 'Katze', status: 'known',
-      sr_fwd_due: '2020-01-01', sr_fwd_stability: 30, sr_fwd_interval: 30,
-    },
-  });
-  const collected = deck.collect(app, settings({ statusFilter: ['new', 'learning'] }));
-  assert.equal(collected.length, 1, 'autoPromote to known drops the card out of review for good');
 });
 
 test('a list-valued translation should not collapse into one string', { todo: true }, () => {
