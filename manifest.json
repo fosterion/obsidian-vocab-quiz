@@ -1,0 +1,9 @@
+{
+  "id": "vocab-quiz",
+  "name": "Vocab Quiz",
+  "version": "0.2.0",
+  "minAppVersion": "1.4.0",
+  "description": "Review vocabulary stored in frontmatter properties: multiple-choice and classic flashcard modes with an FSRS scheduler.",
+  "author": "fosterion",
+  "isDesktopOnly": false
+}

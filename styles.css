@@ -1,0 +1,124 @@
+.vocab-quiz-modal {
+  max-width: 560px;
+}
+
+.vq-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: var(--font-ui-smaller);
+  color: var(--text-muted);
+  margin-bottom: 1.2em;
+}
+
+.vq-direction {
+  padding: 2px 8px;
+  border-radius: 4px;
+  background: var(--background-modifier-border);
+  letter-spacing: 0.04em;
+}
+
+.vq-prompt {
+  font-size: 2em;
+  font-weight: 600;
+  text-align: center;
+  margin: 0.4em 0 0.1em;
+  line-height: 1.25;
+}
+
+.vq-transcription {
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 1em;
+  margin-bottom: 0.6em;
+}
+
+.vq-answer {
+  font-size: 1.5em;
+  text-align: center;
+  color: var(--text-accent);
+  margin: 0.8em 0 1.2em;
+}
+
+.vq-choices {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 1.4em 0 1em;
+}
+
+.vq-choice {
+  width: 100%;
+  padding: 12px 14px;
+  text-align: left;
+  font-size: 1.05em;
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 8px;
+  background: var(--background-secondary);
+  cursor: pointer;
+  transition: background 0.12s ease, border-color 0.12s ease;
+}
+
+.vq-choice:hover:not([disabled]) {
+  background: var(--background-modifier-hover);
+  border-color: var(--interactive-accent);
+}
+
+.vq-choice[disabled] {
+  cursor: default;
+  opacity: 0.75;
+}
+
+.vq-choice.vq-right {
+  background: rgba(76, 175, 80, 0.18);
+  border-color: #4caf50;
+  opacity: 1;
+}
+
+.vq-choice.vq-wrong {
+  background: rgba(244, 67, 54, 0.16);
+  border-color: #f44336;
+  opacity: 1;
+}
+
+.vq-reveal {
+  display: block;
+  margin: 1.6em auto 0.6em;
+  min-width: 200px;
+}
+
+.vq-grades {
+  display: flex;
+  gap: 8px;
+  margin-top: 1.2em;
+}
+
+.vq-grade {
+  flex: 1;
+  padding: 10px 6px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: var(--font-ui-small);
+  border: 1px solid var(--background-modifier-border);
+  background: var(--background-secondary);
+}
+
+.vq-grade:hover {
+  background: var(--background-modifier-hover);
+}
+
+.vq-grade-1:hover { border-color: #f44336; }
+.vq-grade-2:hover { border-color: #ff9800; }
+.vq-grade-3:hover { border-color: #4caf50; }
+.vq-grade-4:hover { border-color: #2196f3; }
+
+.vq-hint {
+  margin-top: 1em;
+  text-align: center;
+  font-size: var(--font-ui-smaller);
+  color: var(--text-muted);
+}
+
+.vq-summary {
+  line-height: 1.9;
+}
