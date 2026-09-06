@@ -1,0 +1,13 @@
+{
+  "name": "obsidian-vocab-quiz",
+  "version": "0.2.0",
+  "description": "Obsidian plugin for vocabulary review driven by frontmatter properties",
+  "private": true,
+  "scripts": {
+    "build": "node scripts/build.js",
+    "test": "node --test \"tests/**/*.test.js\""
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

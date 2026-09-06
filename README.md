@@ -70,5 +70,20 @@ Copy `main.js`, `manifest.json` and `styles.css` into
 ## Development
 
 Sources live in `src/` as separate modules; the `main.js` at the repository root
-is the built bundle (Obsidian loads only that file). After editing `src/`,
-rebuild by concatenating the modules.
+is the built bundle, since Obsidian loads only that file.
+
+```
+src/        plugin modules
+scripts/    build.js — concatenates src/ into main.js
+tests/      node:test suites, plus helpers/ stubbing the Obsidian API
+```
+
+```sh
+npm run build   # regenerate main.js after editing src/
+npm test        # run the suite (no dependencies, uses node --test)
+```
+
+The suite has no third-party dependencies. `tests/bundle.test.js` fails if
+`main.js` is out of date, so run the build before committing. Findings that are
+known but unfixed live in `tests/known-issues.test.js`, marked `todo` so they
+are on record without breaking the suite.
