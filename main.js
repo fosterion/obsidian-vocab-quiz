@@ -155,20 +155,32 @@ function noteToEntry(app, file, settings) {
     transcription: String(fm[settings.transcriptionField] || '').trim(),
     status: String(fm.status || '').trim(),
     level: String(fm.level || '').trim(),
-    sr: readState(fm, settings),
+    sr: {
+      // fall back to the shared fields so existing scheduling data is not lost
+      [DIR_FORWARD]:
+        readState(fm, statePrefix(settings, DIR_FORWARD)) ||
+        readState(fm, settings.fieldPrefix),
+      [DIR_REVERSE]:
+        readState(fm, statePrefix(settings, DIR_REVERSE)) ||
+        readState(fm, settings.fieldPrefix),
+    },
   };
 }
 
-function readState(fm, settings) {
-  const p = settings.fieldPrefix;
-  if (!fm[p + 'due']) return null;
+/** Frontmatter prefix holding the scheduling state of one direction. */
+function statePrefix(settings, direction) {
+  return settings.fieldPrefix + (direction === DIR_FORWARD ? 'fwd_' : 'rev_');
+}
+
+function readState(fm, prefix) {
+  if (!fm[prefix + 'due']) return null;
   return {
-    due: fm[p + 'due'],
-    stability: Number(fm[p + 'stability']) || 0,
-    difficulty: Number(fm[p + 'difficulty']) || 5,
-    interval: Number(fm[p + 'interval']) || 0,
-    reps: Number(fm[p + 'reps']) || 0,
-    lapses: Number(fm[p + 'lapses']) || 0,
+    due: fm[prefix + 'due'],
+    stability: Number(fm[prefix + 'stability']) || 0,
+    difficulty: Number(fm[prefix + 'difficulty']) || 5,
+    interval: Number(fm[prefix + 'interval']) || 0,
+    reps: Number(fm[prefix + 'reps']) || 0,
+    lapses: Number(fm[prefix + 'lapses']) || 0,
   };
 }
 
@@ -187,34 +199,39 @@ function collect(app, settings) {
   return out;
 }
 
-function isDue(entry, now) {
-  if (!entry.sr || !entry.sr.due) return true; // a new card
-  return new Date(entry.sr.due) <= now;
+function isDue(card, now) {
+  const state = card.entry.sr[card.direction];
+  if (!state || !state.due) return true; // a new card
+  return new Date(state.due) <= now;
 }
 
 /** Today's queue: due cards first, then new ones, capped by the session limit. */
 function buildQueue(entries, settings, now) {
   const due = [];
   const fresh = [];
-  for (const e of entries) {
-    if (!e.sr || !e.sr.due) fresh.push(e);
-    else if (new Date(e.sr.due) <= now) due.push(e);
+  for (const entry of entries) {
+    for (const direction of settings.directions) {
+      const card = { entry, direction };
+      if (isDue(card, now)) {
+        const state = entry.sr[direction];
+        (state && state.due ? due : fresh).push(card);
+      }
+    }
   }
-  due.sort((a, b) => new Date(a.sr.due) - new Date(b.sr.due));
+  // oldest first, so the session limit never silently drops the worst backlog
+  due.sort(
+    (a, b) =>
+      new Date(a.entry.sr[a.direction].due) -
+      new Date(b.entry.sr[b.direction].due)
+  );
   shuffle(fresh);
 
-  const queue = due.concat(fresh.slice(0, settings.newPerDay));
-  const cards = [];
-  for (const entry of queue) {
-    if (settings.directions.includes(DIR_FORWARD)) {
-      cards.push({ entry, direction: DIR_FORWARD });
-    }
-    if (settings.directions.includes(DIR_REVERSE)) {
-      cards.push({ entry, direction: DIR_REVERSE });
-    }
-  }
-  shuffle(cards);
-  return cards.slice(0, settings.maxPerSession || cards.length);
+  const limit = settings.maxPerSession > 0 ? settings.maxPerSession : Infinity;
+  const selected = due.slice(0, limit);
+  const room = Math.min(settings.newPerDay, limit - selected.length);
+  if (room > 0) selected.push(...fresh.slice(0, room));
+  // selection is by priority, presentation order is not
+  return shuffle(selected);
 }
 
 /**
@@ -376,21 +393,24 @@ class VocabQuizPlugin extends Plugin {
     let due = 0;
     let later = 0;
     for (const e of entries) {
-      if (!e.sr || !e.sr.due) fresh++;
-      else if (new Date(e.sr.due) <= now) due++;
-      else later++;
+      for (const direction of this.settings.directions) {
+        const state = e.sr[direction];
+        if (!state || !state.due) fresh++;
+        else if (new Date(state.due) <= now) due++;
+        else later++;
+      }
     }
     new Notice(
-      `Total: ${entries.length}\nNew: ${fresh}\nDue: ${due}\nLater: ${later}`,
+      `Notes: ${entries.length}\nNew: ${fresh}\nDue: ${due}\nLater: ${later}`,
       8000
     );
   }
 
-  /** Writes FSRS state into the note's frontmatter. */
-  async saveState(path, state) {
+  /** Writes FSRS state for one direction into the note's frontmatter. */
+  async saveState(path, direction, state) {
     const file = this.app.vault.getAbstractFileByPath(path);
     if (!file) return;
-    const p = this.settings.fieldPrefix;
+    const p = statePrefix(this.settings, direction);
     await this.app.fileManager.processFrontMatter(file, (fm) => {
       fm[p + 'due'] = toDateString(state.due);
       fm[p + 'stability'] = state.stability;
@@ -400,7 +420,16 @@ class VocabQuizPlugin extends Plugin {
       fm[p + 'lapses'] = state.lapses;
 
       if (this.settings.autoPromote) {
-        if (state.interval >= 21 && fm.status !== 'known') fm.status = 'known';
+        // a word is known only once every direction in use has matured
+        const dirs = this.settings.directions;
+        const mature =
+          dirs.length > 0 &&
+          dirs.every(
+            (d) =>
+              (Number(fm[statePrefix(this.settings, d) + 'interval']) ||
+                0) >= 21
+          );
+        if (mature && fm.status !== 'known') fm.status = 'known';
         else if (state.reps > 0 && fm.status === 'new') fm.status = 'learning';
       }
     });
@@ -552,12 +581,12 @@ class ReviewModal extends Modal {
 
   async grade(card, g) {
     const state = schedule(
-      card.entry.sr,
+      card.entry.sr[card.direction],
       g,
       this.plugin.settings.requestRetention,
       new Date()
     );
-    card.entry.sr = {
+    card.entry.sr[card.direction] = {
       due: toDateString(state.due),
       stability: state.stability,
       difficulty: state.difficulty,
@@ -565,7 +594,7 @@ class ReviewModal extends Modal {
       reps: state.reps,
       lapses: state.lapses,
     };
-    await this.plugin.saveState(card.entry.path, state);
+    await this.plugin.saveState(card.entry.path, card.direction, state);
 
     if (g === 1) this.again.push(card);
     this.index++;

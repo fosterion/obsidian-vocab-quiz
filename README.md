@@ -49,8 +49,8 @@ notes in any language work without renaming anything.
 
 - Two modes: multiple choice with 2–6 options, and classic reveal-the-answer
 - Both directions, independently toggleable
-- FSRS scheduler; state lives in the `sr_due`, `sr_stability`, `sr_interval`
-  and related properties
+- FSRS scheduler with independent state per direction, stored in the
+  `sr_fwd_*` and `sr_rev_*` properties
 - Filter by `status` — for example, review only `new` and `learning`
 - Automatic `new → learning → known` promotion as the interval grows
 - Configurable property names and side labels

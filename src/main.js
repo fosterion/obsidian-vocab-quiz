@@ -118,21 +118,24 @@ class VocabQuizPlugin extends Plugin {
     let due = 0;
     let later = 0;
     for (const e of entries) {
-      if (!e.sr || !e.sr.due) fresh++;
-      else if (new Date(e.sr.due) <= now) due++;
-      else later++;
+      for (const direction of this.settings.directions) {
+        const state = e.sr[direction];
+        if (!state || !state.due) fresh++;
+        else if (new Date(state.due) <= now) due++;
+        else later++;
+      }
     }
     new Notice(
-      `Total: ${entries.length}\nNew: ${fresh}\nDue: ${due}\nLater: ${later}`,
+      `Notes: ${entries.length}\nNew: ${fresh}\nDue: ${due}\nLater: ${later}`,
       8000
     );
   }
 
-  /** Writes FSRS state into the note's frontmatter. */
-  async saveState(path, state) {
+  /** Writes FSRS state for one direction into the note's frontmatter. */
+  async saveState(path, direction, state) {
     const file = this.app.vault.getAbstractFileByPath(path);
     if (!file) return;
-    const p = this.settings.fieldPrefix;
+    const p = deck.statePrefix(this.settings, direction);
     await this.app.fileManager.processFrontMatter(file, (fm) => {
       fm[p + 'due'] = toDateString(state.due);
       fm[p + 'stability'] = state.stability;
@@ -142,7 +145,16 @@ class VocabQuizPlugin extends Plugin {
       fm[p + 'lapses'] = state.lapses;
 
       if (this.settings.autoPromote) {
-        if (state.interval >= 21 && fm.status !== 'known') fm.status = 'known';
+        // a word is known only once every direction in use has matured
+        const dirs = this.settings.directions;
+        const mature =
+          dirs.length > 0 &&
+          dirs.every(
+            (d) =>
+              (Number(fm[deck.statePrefix(this.settings, d) + 'interval']) ||
+                0) >= 21
+          );
+        if (mature && fm.status !== 'known') fm.status = 'known';
         else if (state.reps > 0 && fm.status === 'new') fm.status = 'learning';
       }
     });
@@ -294,12 +306,12 @@ class ReviewModal extends Modal {
 
   async grade(card, g) {
     const state = schedule(
-      card.entry.sr,
+      card.entry.sr[card.direction],
       g,
       this.plugin.settings.requestRetention,
       new Date()
     );
-    card.entry.sr = {
+    card.entry.sr[card.direction] = {
       due: toDateString(state.due),
       stability: state.stability,
       difficulty: state.difficulty,
@@ -307,7 +319,7 @@ class ReviewModal extends Modal {
       reps: state.reps,
       lapses: state.lapses,
     };
-    await this.plugin.saveState(card.entry.path, state);
+    await this.plugin.saveState(card.entry.path, card.direction, state);
 
     if (g === 1) this.again.push(card);
     this.index++;
